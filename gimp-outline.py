@@ -59,13 +59,13 @@ def add_layer_below(image, layer):
     # parent is not a group layer (e.g. selected layer is on top level)
     stack_pos = get_layer_stack_position(layer, image.layers)
   
-  layer = gimp.Layer(image, "outline::{}".format(layer.name), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
+  layer_out = gimp.Layer(image, "outline::{}".format(layer.name), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
   
   # if img.active_layer.parent doesn't exist, it adds layer to top group. Otherwise 
   # the layer will be added into current layer group
-  pdb.gimp_image_insert_layer(image, layer, layer.parent, stack_pos + 1)
+  pdb.gimp_image_insert_layer(image, layer_out, layer.parent, stack_pos + 1)
 
-  return layer
+  return layer_out
 
 
 # adds layer at the bottom of a given group
@@ -80,14 +80,14 @@ def add_layer_group_bottom(image, layer):
 
   else:
     # not a layer group, business as usual:
-    return add_layer_below_currently_selected(image)
+    return add_layer_below(image, layer)
   
-  layer = gimp.Layer(image, "outline::{}".format(layer.name), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
+  layer_out = gimp.Layer(image, "outline::{}".format(layer.name), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
   # if img.active_layer.parent doesn't exist, it adds layer to top group. Otherwise 
   # the layer will be added into current layer group
-  pdb.gimp_image_insert_layer(image, layer, layer, stack_pos + 1)
+  pdb.gimp_image_insert_layer(image, layer_out, layer, stack_pos + 1)
 
-  return layer
+  return layer_out
 
 
 
@@ -114,7 +114,7 @@ def create_selection(image, layer, thickness, feather):
 
 
 def paint_selection(layer):
-  pdb.gimp_edit_bucket_fill_full(layer, 1, BUCKET_FILL_BG, LAYER_MODE_NORMAL, 100, 0, 0, 1, 0, 1, 1)
+  pdb.gimp_edit_bucket_fill_full(layer, BUCKET_FILL_BG, LAYER_MODE_NORMAL, 100, 0, 0, 1, 0, 1, 1)
 
 
 #
@@ -143,8 +143,8 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
         
         if merge_source_layer: 
           name = layer.name         # save name of original layer
-          pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECCESSARY)
-          outline_layer.name = name # restore name of original layer
+          merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
+          merged_layer.name = name  # restore name of original layer
 
         clear_selection(image)
   
@@ -156,6 +156,8 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
 # main function
 def python_outline(image, drawable, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   bg_save = gimp.get_background()
+  clear_selection(image)
+  layer = image.active_layer
   gimp.set_background(color)
 
   # we only do recursion if layers or groups have separate outlines
@@ -167,24 +169,53 @@ def python_outline(image, drawable, color, thickness, feather, separate_groups, 
   # we can also create selection from layer group alpha, which saves us some work
   recursive = (separate_groups or separate_layers) and not (merge_source_layer and not separate_groups)
 
-  if type(image.active_layer) is gimp.GroupLayer and recursive:
-    outline_layer_group(image, image.active_layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+  if type(layer) is gimp.GroupLayer and recursive:
+    outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
 
     # if we separated layers, outlines are already filled with color, so 
     # we can skip that part
-    if type(image.active_layer) is gimp.GroupLayer and not separate_layers:
-      group_outline_layer = add_layer_group_bottom(image, image.active_layer)
+    if type(layer) is gimp.GroupLayer and not separate_layers:
+      group_outline_layer = add_layer_group_bottom(image,layer)
       paint_selection(group_outline_layer)
   else:
-    create_selection(image, image.active_layer, thickness, feather)
-    outline_layer = add_layer_below(image, image.active_layer)
+    create_selection(image, layer, thickness, feather)
+    outline_layer = add_layer_below(image, layer)
     paint_selection(outline_layer)
     
     if merge_source_layer:
-      name = image.active_layer.name         # save name of original layer
-      pdb.gimp_image_merge_down(image, image.active_layer, EXPAND_AS_NECCESSARY)
-      outline_layer.name = name # restore name of original layer
+      name = layer.name         # save name of original layer
+      merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
+      merged_layer.name = name  # restore name of original layer
     
   # clear selection and restore background color
   clear_selection(image)
   gimp.set_background(bg_save)
+
+
+def test_outline(image, thickness, feather, separate_groups, separate_layers, merge_source_layer):
+  clear_selection(image)
+  layer = image.active_layer
+
+  # we only do recursion if we separate layers or groups. Also 'merge source layer'
+  # option is really only valid with separate layers, because if groups are allowed
+  # to get merged, everything is a bit pointless. 
+  # 
+  # also yes, btw, we can merge layer group to a layer below the group
+  # we can also create selection from layer group alpha, which saves us some work
+  recursive = (separate_groups and not merge_source_layer) or separate_layers
+
+  if type(layer) is gimp.GroupLayer and recursive:
+    outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+
+  else:
+    create_selection(image, layer, thickness, feather)
+    outline_layer = add_layer_below(image, layer)
+    paint_selection(outline_layer)
+    
+    if merge_source_layer:
+      name = layer.name         # save name of original layer
+      merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
+      merged_layer.name = name  # restore name of original layer
+    
+  # clear selection and restore background color
+  clear_selection(image)
