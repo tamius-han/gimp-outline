@@ -133,7 +133,7 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
 
     if type(layer) is gimp.GroupLayer:
       # yes, we do recursion
-      select_outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
     else:
       create_selection(image, layer, thickness, feather)
 
@@ -205,7 +205,7 @@ def test_outline(image, thickness, feather, separate_groups, separate_layers, me
   recursive = (separate_groups and not merge_source_layer) or separate_layers
 
   if type(layer) is gimp.GroupLayer and recursive:
-    outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+     outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
 
   else:
     create_selection(image, layer, thickness, feather)
