@@ -164,6 +164,10 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
     for layerId in sublayers:
       layer = gimp.Item.from_id(layerId)
 
+      # we ignore hidden layers
+      if not layer.visibility:
+        continue
+      
       if type(layer) is gimp.GroupLayer:
         # yes, we do recursion
         outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
@@ -188,6 +192,10 @@ def python_outline(image, drawable, color, thickness, feather, separate_groups, 
   layer = image.active_layer
   gimp.set_background(color)
 
+  # we ignore hidden layers
+  if not layer.visibility:
+    continue
+  
   # we only do recursion if layers or groups have separate outlines
   # but we don't do recursion on 'merge source layer' and 'not separate layers'
   # because if we're merging source layer when group layer is selected, the entire
@@ -200,9 +208,9 @@ def python_outline(image, drawable, color, thickness, feather, separate_groups, 
   if type(layer) is gimp.GroupLayer and recursive:
     outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
 
-    # if we separated layers, outlines are already filled with color, so 
+    # if we separated layers or groups, outlines are already filled with color, so 
     # we can skip that part
-    if type(layer) is gimp.GroupLayer and not separate_layers:
+    if type(layer) is gimp.GroupLayer and not separate_layers and not separate_groups:
       group_outline_layer = add_layer_group_bottom(image,layer)
       paint_selection(group_outline_layer)
   else:
@@ -234,6 +242,11 @@ def test_outline(image, thickness, feather, separate_groups, separate_layers, me
 
   if type(layer) is gimp.GroupLayer and recursive:
      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+    # if we separated layers or groups, outlines are already filled with color, so 
+    # we can skip that part
+    if type(layer) is gimp.GroupLayer and not separate_layers and not separate_groups:
+      group_outline_layer = add_layer_group_bottom(image,layer)
+      paint_selection(group_outline_layer)
 
   else:
     create_selection(image, layer, thickness, feather)
