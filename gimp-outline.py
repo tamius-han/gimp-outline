@@ -12,7 +12,6 @@
 
 from gimpfu import *
 
-
 #
 #
 #  L A Y E R   M A N A G E M E N T
@@ -128,30 +127,59 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
 
   sublayers = pdb.gimp_item_get_children(group_layer)[1]
 
-  for layerId in sublayers:
-    layer = gimp.Item.from_id(layerId)
+  # If we're using this function, there's about two valid options:
+  #   A) we use separate layers for separate groups
+  #   B) we want to use a separate layer for every layer
+  # Each option requires a slightly different approach.
 
-    if type(layer) is gimp.GroupLayer:
-      # yes, we do recursion
-      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
-    else:
-      create_selection(image, layer, thickness, feather)
+  if separate_groups:
+    group_layers = []
+    for layerId in sublayers:
+      layer = gimp.Item.from_id(layerId)
 
-      if separate_layers:
-        outline_layer = add_layer_below(image, layer)
-        paint_selection(outline_layer)
-        
-        if merge_source_layer: 
-          name = layer.name         # save name of original layer
-          merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
-          merged_layer.name = name  # restore name of original layer
+      # we ignore hidden layers
+      if not layer.visibility:
+        continue
 
-        clear_selection(image)
-  
-  if separate_groups and not separate_layers:
+      # we hide layer gropups and put them on a "handle me later pls" list
+      if type(layer) is gimp.GroupLayer:
+        group_layers.append(layer)
+        layer.visibility = False
+      # we don't separate layers, so we don't do anything with things that 
+      # aren't layer groups.
+
+    # we do outline of the current layer group
     group_outline_layer = add_layer_group_bottom(image, group_layer)
     paint_selection(group_outline_layer)
     clear_selection(image)
+
+    # now it's recursion o'clock:
+    # (and yes, we do recursion)
+    for layer in group_layers:
+      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+      layer.visibility = True
+  
+  else: 
+    # so we're doing this layer by layer, possibly even separating layers
+    for layerId in sublayers:
+      layer = gimp.Item.from_id(layerId)
+
+      if type(layer) is gimp.GroupLayer:
+        # yes, we do recursion
+        outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+      else:
+        create_selection(image, layer, thickness, feather)
+
+        if separate_layers:
+          outline_layer = add_layer_below(image, layer)
+          paint_selection(outline_layer)
+          
+          if merge_source_layer: 
+            name = layer.name         # save name of original layer
+            merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
+            merged_layer.name = name  # restore name of original layer
+
+          clear_selection(image)
 
 # main function
 def python_outline(image, drawable, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
