@@ -156,8 +156,8 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
     # now it's recursion o'clock:
     # (and yes, we do recursion)
     for layer in group_layers:
-      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
       layer.visibility = True
+      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
   
   else: 
     # so we're doing this layer by layer, possibly even separating layers
