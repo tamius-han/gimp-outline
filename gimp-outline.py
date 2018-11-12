@@ -173,17 +173,15 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
         outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
       else:
         create_selection(image, layer, thickness, feather)
+        outline_layer = add_layer_below(image, layer)
+        paint_selection(outline_layer)
+        
+        if merge_source_layer: 
+          name = layer.name         # save name of original layer
+          merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
+          merged_layer.name = name  # restore name of original layer
 
-        if separate_layers:
-          outline_layer = add_layer_below(image, layer)
-          paint_selection(outline_layer)
-          
-          if merge_source_layer: 
-            name = layer.name         # save name of original layer
-            merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
-            merged_layer.name = name  # restore name of original layer
-
-          clear_selection(image)
+        clear_selection(image)
 
 # main function
 def python_outline(image, drawable, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
