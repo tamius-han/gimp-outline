@@ -88,6 +88,38 @@ def add_layer_group_bottom(image, layer):
 
   return layer_out
 
+#
+#
+#  C O L O R    S T A C K
+#
+
+__saved_colors_bg = []
+__saved_colors_fg = []
+def color_push_bg(color):
+  __saved_colors_bg.append(color)
+
+def color_pop_bg():
+  return __saved_colors.pop()
+
+def color_push_fg(color):
+  __saved_colors_fg.append(color)
+
+def color_pop_fg():
+  return __saved_colors_fg.pop()
+
+def set_bg_stack(newColor):
+  color_push(gimp.get_background())
+  gimp.set_background(color)
+
+def restore_bg_stack():
+  gimp.set_background(color_pop_bg())
+
+def set_fg_stack(newColor):
+  color_push_fg(gimp.get_foreground())
+  gimp.set_foreground(color)
+
+def restore_fg_stack():
+  gimp.set_foreground(color_pop_fg())
 
 #
 #
@@ -137,9 +169,34 @@ def paint_selection(layer):
 # L A Y E R   H A N D L I N G
 #
 
-def outline_layer_group(image, group_layer, thickness, feather, separate_groups, separate_layers, merge_source_layer):
-  # if we're separating groups, we put a new layer at the 
-  # buttom of our layer group
+def outline_layer_group(image, group_layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
+  # in auto mode, we parse arguments from layer name
+  if auto:
+    arguments = parse_args_from_layer_name(group_layer.name)
+    for arg in arguments:
+      if arg[0] == 't':
+        thickness = int(arg[1])
+      elif arg[0] == 'f':
+        feather = int(arg[1])
+      elif arg[0] == 'separate_groups':
+        separate_groups = True
+        separate_layers = False
+      elif arg[0] == 'separate_layers':
+        separate_groups = False
+        separate_layers = True
+      elif arg[0] == 'no_separate_groups':
+        separate_groups = False
+      elif arg[0] == 'no_separate_layers':
+        separate_layers = False
+      elif arg[0] == 'merge_source':
+        merge_source_layer = True
+      elif arg[0] == 'no_merge_source':
+        merge_source_layer = False
+      elif arg[0] == 'color':
+        color = arg[1]
+
+  if color:
+    set_bg_stack(color)
 
   sublayers = pdb.gimp_item_get_children(group_layer)[1]
 
@@ -173,7 +230,7 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
     # (and yes, we do recursion)
     for layer in group_layers:
       layer.visibility = True
-      outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+      outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
   
   else: 
     # so we're doing this layer by layer, possibly even separating layers
@@ -198,13 +255,15 @@ def outline_layer_group(image, group_layer, thickness, feather, separate_groups,
           merged_layer.name = name  # restore name of original layer
 
         clear_selection(image)
+  
+  if color:
+    restore_bg_stack()
 
 # main function
 def python_outline(image, drawable, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
-  bg_save = gimp.get_background()
+  set_bg_stack(color)
   clear_selection(image)
   layer = image.active_layer
-  gimp.set_background(color)
 
   # we ignore hidden layers
   if not layer.visibility:
@@ -239,8 +298,7 @@ def python_outline(image, drawable, color, thickness, feather, separate_groups, 
     
   # clear selection and restore background color
   clear_selection(image)
-  gimp.set_background(bg_save)
-
+  restore_bg_stack()
 
 def test_outline(image, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   clear_selection(image)
