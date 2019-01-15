@@ -229,9 +229,9 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         color = arg[1]
       elif arg[0] == 'pass':
         argPass = arg[1]
-      elif arg[0] == 'no_default_skip'
+      elif arg[0] == 'no_default_skip':
         argPass = ''
-      elif arg[0] == 'preserve_cmd'
+      elif arg[0] == 'preserve_cmd':
         preserveCmd = True
 
   if color:
