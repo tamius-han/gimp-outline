@@ -58,7 +58,11 @@ def add_layer_below(image, layer, preserveCmd=False, argumentPass='()=>skip'):
     # parent is not a group layer (e.g. selected layer is on top level)
     stack_pos = get_layer_stack_position(layer, image.layers)
   
-  new_name = layer.name.split('()=>')[0]
+  if preserveCmd:
+    new_name = layer.name
+  else:
+    new_name = layer.name.split('()=>')[0]
+
   layer_out = gimp.Layer(image, "outline::{}{}".format(new_name, argumentPass), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
   
   # if img.active_layer.parent doesn't exist, it adds layer to top group. Otherwise 
@@ -69,7 +73,7 @@ def add_layer_below(image, layer, preserveCmd=False, argumentPass='()=>skip'):
 
 
 # adds layer at the bottom of a given group
-def add_layer_group_bottom(image, layer, argumentPass='()=>skip'):
+def add_layer_group_bottom(image, layer, preserveCmd=False, argumentPass='()=>skip'):
   stack_pos = 0
   
   if type(layer) is gimp.GroupLayer:
@@ -82,7 +86,11 @@ def add_layer_group_bottom(image, layer, argumentPass='()=>skip'):
     # not a layer group, business as usual:
     return add_layer_below(image, layer)
   
-  new_name = layer.name.split('()=>')[0]
+  if preserveCmd:
+    new_name = layer.name
+  else:
+    new_name = layer.name.split('()=>')[0]
+
   layer_out = gimp.Layer(image, "outline::{}{}".format(new_name, argumentPass), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
   # if img.active_layer.parent doesn't exist, it adds layer to top group. Otherwise 
   # the layer will be added into current layer group
@@ -188,7 +196,8 @@ def paint_selection(layer):
 def outline_layer_group(image, group_layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   # in auto mode, we parse arguments from layer name
   skip = False
-  argPass='()=>skip'
+  argPass = '()=>skip'
+  preserveCmd = False
 
   if auto:
     arguments = parse_args_from_layer_name(group_layer.name)
@@ -222,6 +231,8 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         argPass = arg[1]
       elif arg[0] == 'no_default_skip'
         argPass = ''
+      elif arg[0] == 'preserve_cmd'
+        preserveCmd = True
 
   if color:
     set_bg_stack(color)
@@ -257,7 +268,7 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
 
     # we do outline of the current layer/layer group group.
     # we also do this when separate_groups and separate_layers are both false
-    group_outline_layer = add_layer_below(image, group_layer)
+    group_outline_layer = add_layer_below(image, group_layer, preserveCmd, argPass)
     paint_selection(group_outline_layer)
     clear_selection(image)
 
@@ -283,7 +294,7 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
       else:
         create_selection(image, layer, thickness, feather)
-        outline_layer = add_layer_below(image, layer)
+        outline_layer = add_layer_below(image, layer, preserveCmd, argPass)
         paint_selection(outline_layer)
         
         if merge_source_layer: 

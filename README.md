@@ -25,7 +25,7 @@ This feature is mildly useful if you're doing repetitive things, such as e.g. ma
 
 You can only use ***one*** command block for a single script. However, it should be safe to mix command blocks of multiple scripts.
 
-If script runs recursively inside a layer group, any nested layer group will be processed with the same parameters as the parent group.
+If script runs recursively inside a layer group, any nested layer group will be processed with the same parameters as the parent group. (Some commands are exception to the rule)
 
 If selected/top level layer group doesn't have a command block, it will be skipped. Any descendant layer or layer group that has a command block in its name, however, will be processed according to command parameters.
 
@@ -39,9 +39,9 @@ Example of a command block is here.
 **Available commands**
 
 `()=>outline` — start of command block for auto-outlining script. Everything after this should be an argument. Arguments are separated by space.
-`skip` — don't process this layer / layer group. It doesn't stop recursion — the children will be processed normally.
-`()=>skip` — same as `skip`, except it also tells other scripts (that I wrote and have similar auto capabilites) to ignore this block. 
-`end` — don't process this layer / layer group. Don't process children, either.
+`skip` — don't process this layer / layer group. It doesn't stop recursion — the children will be processed normally. Doesn't apply to children.
+`()=>skip` — same as `skip`, except it also tells other scripts (that I wrote and have similar auto capabilites) to ignore this block. Doesn't apply to children.
+`end` — don't process this layer / layer group. Don't process children, either. Do I need to state the obvious?
 `()=>end` — makes other scripts of mine respect `end` command as well.
 `t=X` —  thickness in pixels (replace X with a number. There should be no spaces on either side of =)
 `f=X` —  feather (in pixels)
@@ -62,7 +62,9 @@ Sometimes when using multiple levels of nested groups, you may want to use diffe
 
 **Before we go into the rest of commands, here's an important technical stuff about how the outline layer is named**
 
-When creating a layer, the script will name the outline layer as `outline:: ` + original name (minus ***any*** command block) + ` ()=>skip`. E.g. say you want to make an outline of a layer named `Testy McTestyface ()=>outline t=1 color=#000000 ()=>some_other_command`. The outline layer for this layer  will be named `outline::  Testy McTestyface ()=>skip`. If the command block contains `merge-source` (e.g. `Testy McTestyface ()=>outline t=1 merge_source color=#000000`), the script will name the outline layer as `outline-ms:: ` + original name (minus original `()=>outline` command block) (e.g. `outline-ms::  Testy McTestyface ()=>skip`)
+When creating a layer, the script will name the outline layer as `outline:: ` + original name (minus ***any*** command block) + ` ()=>skip`. E.g. say you want to make an outline of a layer named `Testy McTestyface ()=>outline t=1 color=#000000 ()=>some_other_command`. The outline layer for this layer  will be named `outline::  Testy McTestyface ()=>skip`. If the command block contains `merge-source` (e.g. `Testy McTestyface ()=>outline t=1 merge_source color=#000000`), the script will name the outline layer as `outline-ms:: ` + original name (minus original `()=>outline` command block) (e.g. `outline-ms::  Testy McTestyface ()=>skip`).
+
+**NOTE:** NONE of the following commands apply to nested layers/layer groups.
 
 `preserve_cmd` — when creating the layer with outline, don't remove the original command block. If layer you're outlining has no command block, the script will NOT add the command to the name — e.g. outline of layer named `Testy McTestyface` will be `outline:: Testy McTestyface`
 `>>` — everything after `>>` is not considered to be part of command. Instead, it will be appended to the name of the outline layer. For example, outline of `Testy McTestyface >> ()=>outline t=3 color=#ffffff` will be named `outline:: Testy McTestyFace ()=>outline t=3  color=#ffffff`
