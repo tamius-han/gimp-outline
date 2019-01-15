@@ -109,7 +109,7 @@ def color_push_bg(color):
   __saved_colors_bg.append(color)
 
 def color_pop_bg():
-  return __saved_colors.pop()
+  return __saved_colors_bg.pop()
 
 def color_push_fg(color):
   __saved_colors_fg.append(color)
@@ -118,15 +118,15 @@ def color_pop_fg():
   return __saved_colors_fg.pop()
 
 def set_bg_stack(newColor):
-  color_push(gimp.get_background())
-  gimp.set_background(color)
+  color_push_bg(gimp.get_background())
+  gimp.set_background(newColor)
 
 def restore_bg_stack():
   gimp.set_background(color_pop_bg())
 
 def set_fg_stack(newColor):
   color_push_fg(gimp.get_foreground())
-  gimp.set_foreground(color)
+  gimp.set_foreground(newColor)
 
 def restore_fg_stack():
   gimp.set_foreground(color_pop_fg())
@@ -200,39 +200,42 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
   preserveCmd = False
 
   if auto:
-    arguments = parse_args_from_layer_name(group_layer.name)
-    for arg in arguments:
-      if arg[0] == 'end':
-        return
-      if arg[0] == 'skip':
-        skip = True
-        break
-      if arg[0] == 't':
-        thickness = int(arg[1])
-      elif arg[0] == 'f':
-        feather = int(arg[1])
-      elif arg[0] == 'separate_groups':
-        separate_groups = True
-        separate_layers = False
-      elif arg[0] == 'separate_layers':
-        separate_groups = False
-        separate_layers = True
-      elif arg[0] == 'no_separate_groups':
-        separate_groups = False
-      elif arg[0] == 'no_separate_layers':
-        separate_layers = False
-      elif arg[0] == 'merge_source':
-        merge_source_layer = True
-      elif arg[0] == 'no_merge_source':
-        merge_source_layer = False
-      elif arg[0] == 'color':
-        color = arg[1]
-      elif arg[0] == 'pass':
-        argPass = arg[1]
-      elif arg[0] == 'no_default_skip':
-        argPass = ''
-      elif arg[0] == 'preserve_cmd':
-        preserveCmd = True
+    try: 
+      arguments = parse_args_from_layer_name(group_layer.name)
+      for arg in arguments:
+        if arg[0] == 'end':
+          return
+        if arg[0] == 'skip':
+          skip = True
+          break
+        if arg[0] == 't':
+          thickness = int(arg[1])
+        elif arg[0] == 'f':
+          feather = int(arg[1])
+        elif arg[0] == 'separate_groups':
+          separate_groups = True
+          separate_layers = False
+        elif arg[0] == 'separate_layers':
+          separate_groups = False
+          separate_layers = True
+        elif arg[0] == 'no_separate_groups':
+          separate_groups = False
+        elif arg[0] == 'no_separate_layers':
+          separate_layers = False
+        elif arg[0] == 'merge_source':
+          merge_source_layer = True
+        elif arg[0] == 'no_merge_source':
+          merge_source_layer = False
+        elif arg[0] == 'color':
+          color = arg[1]
+        elif arg[0] == 'pass':
+          argPass = arg[1]
+        elif arg[0] == 'no_default_skip':
+          argPass = ''
+        elif arg[0] == 'preserve_cmd':
+          preserveCmd = True
+    except:
+      skip = True
 
   if color:
     set_bg_stack(color)
@@ -255,14 +258,14 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
       layer = gimp.Item.from_id(layerId)
 
       # we ignore hidden layers
-      if not layer.visibility:
+      if not layer.visible:
         continue
 
       # we hide layer gropups and put them on a "handle me later pls" list
       # in case of A.2, we skip this step
       if type(layer) is gimp.GroupLayer and separate_groups:
         group_layers.append(layer)
-        layer.visibility = False
+        layer.visible = False
       # we don't separate layers, so we don't do anything with things that 
       # aren't layer groups.
 
@@ -278,7 +281,7 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
     # unless we use scenario A.2
     if separate_groups:
       for layer in group_layers:
-        layer.visibility = True
+        layer.visible = True
         outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
   
   else: 
@@ -287,13 +290,13 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
       layer = gimp.Item.from_id(layerId)
 
       # we ignore hidden layers
-      if not layer.visibility:
+      if not layer.visible:
         continue
       
       if type(layer) is gimp.GroupLayer:
         # yes, we do recursion
-        outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
-      else if not skip:
+        outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+      elif not skip:
         create_selection(image, layer, thickness, feather)
         outline_layer = add_layer_below(image, layer, preserveCmd, argPass)
         paint_selection(outline_layer)
@@ -315,8 +318,8 @@ def python_outline(image, drawable, color, thickness, feather, separate_groups, 
   layer = image.active_layer
 
   # we ignore hidden layers
-  if not layer.visibility:
-    continue
+  if not layer.visible:
+    return
   
   # we only do recursion if layers or groups have separate outlines
   # but we don't do recursion on 'merge source layer' and 'not separate layers'
@@ -349,7 +352,7 @@ def python_outline(image, drawable, color, thickness, feather, separate_groups, 
   clear_selection(image)
   restore_bg_stack()
 
-def test_outline(image, thickness, feather, separate_groups, separate_layers, merge_source_layer):
+def test_outline(image, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   clear_selection(image)
   layer = image.active_layer
 
@@ -362,7 +365,7 @@ def test_outline(image, thickness, feather, separate_groups, separate_layers, me
   recursive = (separate_groups and not merge_source_layer) or separate_layers
 
   if type(layer) is gimp.GroupLayer and recursive:
-     outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+    outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
     # if we separated layers or groups, outlines are already filled with color, so 
     # we can skip that part
     if type(layer) is gimp.GroupLayer and not separate_layers and not separate_groups:
@@ -381,3 +384,7 @@ def test_outline(image, thickness, feather, separate_groups, separate_layers, me
     
   # clear selection and restore background color
   clear_selection(image)
+
+def test_auto():
+   img = gimp.image_list()[0]
+   test_outline(img, True, '#000000', 3, 0, False, True, False)
