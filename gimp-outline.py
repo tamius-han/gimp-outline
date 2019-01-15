@@ -246,8 +246,8 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
   #   B) we want to use a separate layer for every layer
   #
   # Each option requires a slightly different approach.
-  # A.2 — which happens when both separate_groups and separate_layers
-  # are false — is a mild variation on scenario A, hence this condition:
+  # A.2 -- which happens when both separate_groups and separate_layers
+  # are false -- is a mild variation on scenario A, hence this condition:
 
   if separate_groups or not separate_layers:
     group_layers = []
