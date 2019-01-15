@@ -144,7 +144,7 @@ def parse_args_from_layer_name(name):
   if firstCommand.find('()=>end') != -1:
     return [['end']]
 
-  argLine = name.split('()=>outline')[1].split('()=>')[0]
+  argLine = firstCommand.split('()=>outline')[1].split('()=>')[0]
   argsIn = argLine.split(' ')
 
   argsOut = []
@@ -153,7 +153,7 @@ def parse_args_from_layer_name(name):
     argsOut.append(arg.split('='))
 
 
-  argPassAll = "()=>outline".join(name.split('()=>outline')[1:]).split('>>')
+  argPassAll = "()=>outline".join(name.split('>>'))
   argPassCount = len(argPassAll)
 
   if argPassCount > 1:
