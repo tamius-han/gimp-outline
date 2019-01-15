@@ -268,9 +268,10 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
 
     # we do outline of the current layer/layer group group.
     # we also do this when separate_groups and separate_layers are both false
-    group_outline_layer = add_layer_below(image, group_layer, preserveCmd, argPass)
-    paint_selection(group_outline_layer)
-    clear_selection(image)
+    if not skip:
+      group_outline_layer = add_layer_below(image, group_layer, preserveCmd, argPass)
+      paint_selection(group_outline_layer)
+      clear_selection(image)
 
     # now it's recursion o'clock:
     # (and yes, we do recursion)
@@ -292,7 +293,7 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
       if type(layer) is gimp.GroupLayer:
         # yes, we do recursion
         outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
-      else:
+      else if not skip:
         create_selection(image, layer, thickness, feather)
         outline_layer = add_layer_below(image, layer, preserveCmd, argPass)
         paint_selection(outline_layer)
