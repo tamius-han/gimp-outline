@@ -136,7 +136,7 @@ def parse_args_from_layer_name(name):
   if firstCommand.find('()=>end'):
     return [['end']]
 
-  argLine = name.split('()=>outline')[1].split('::')[0]
+  argLine = name.split('()=>outline')[1].split('()=>')[0]
   argsIn = argLine.split(' ')
 
   argsOut = []
