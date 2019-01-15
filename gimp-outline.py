@@ -46,7 +46,7 @@ def get_layer_stack_position(layer, group):
 
 
 # add a new layer under given layer
-def add_layer_below(image, layer):
+def add_layer_below(image, layer, preserveCmd=False, argumentPass='()=>skip'):
   stack_pos = 0
   
   if layer.parent:
@@ -58,7 +58,8 @@ def add_layer_below(image, layer):
     # parent is not a group layer (e.g. selected layer is on top level)
     stack_pos = get_layer_stack_position(layer, image.layers)
   
-  layer_out = gimp.Layer(image, "outline::{}".format(layer.name), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
+  new_name = layer.name.split('()=>')[0]
+  layer_out = gimp.Layer(image, "outline::{}{}".format(new_name, argumentPass), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
   
   # if img.active_layer.parent doesn't exist, it adds layer to top group. Otherwise 
   # the layer will be added into current layer group
@@ -68,7 +69,7 @@ def add_layer_below(image, layer):
 
 
 # adds layer at the bottom of a given group
-def add_layer_group_bottom(image, layer):
+def add_layer_group_bottom(image, layer, argumentPass='()=>skip'):
   stack_pos = 0
   
   if type(layer) is gimp.GroupLayer:
@@ -81,7 +82,8 @@ def add_layer_group_bottom(image, layer):
     # not a layer group, business as usual:
     return add_layer_below(image, layer)
   
-  layer_out = gimp.Layer(image, "outline::{}".format(layer.name), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
+  new_name = layer.name.split('()=>')[0]
+  layer_out = gimp.Layer(image, "outline::{}{}".format(new_name, argumentPass), image.width, image.height, get_layer_type(image), 100, NORMAL_MODE)
   # if img.active_layer.parent doesn't exist, it adds layer to top group. Otherwise 
   # the layer will be added into current layer group
   pdb.gimp_image_insert_layer(image, layer_out, layer, stack_pos + 1)
@@ -128,13 +130,27 @@ def restore_fg_stack():
 # yes, we'll parse arguments from layers. 
 
 def parse_args_from_layer_name(name):
-  argLine = name.split('::auto-outline')[1].split('::')[0]
+  firstCommand = name.split('>>')[0]
+  if firstCommand.find('()=>skip'):
+    return [['skip']]
+  if firstCommand.find('()=>end'):
+    return [['end']]
+
+  argLine = name.split('()=>outline')[1].split('::')[0]
   argsIn = argLine.split(' ')
 
   argsOut = []
 
   for arg in argsIn:
     argsOut.append(arg.split('='))
+
+
+  argPassAll = "()=>outline".join(name.split('()=>outline')[1:]).split('>>')
+  argPassCount = len(argPassAll)
+
+  if argPassCount > 1:
+    argPass = '>>'.join(argPassAll[1:])
+    argsOut.append(['pass', argPass])
 
   return argsOut
 
@@ -171,9 +187,17 @@ def paint_selection(layer):
 
 def outline_layer_group(image, group_layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   # in auto mode, we parse arguments from layer name
+  skip = False
+  argPass='()=>skip'
+
   if auto:
     arguments = parse_args_from_layer_name(group_layer.name)
     for arg in arguments:
+      if arg[0] == 'end':
+        return
+      if arg[0] == 'skip':
+        skip = True
+        break
       if arg[0] == 't':
         thickness = int(arg[1])
       elif arg[0] == 'f':
@@ -194,6 +218,10 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         merge_source_layer = False
       elif arg[0] == 'color':
         color = arg[1]
+      elif arg[0] == 'pass':
+        argPass = arg[1]
+      elif arg[0] == 'no_default_skip'
+        argPass = ''
 
   if color:
     set_bg_stack(color)
@@ -201,11 +229,16 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
   sublayers = pdb.gimp_item_get_children(group_layer)[1]
 
   # If we're using this function, there's about two valid options:
+  #
   #   A) we use separate layers for separate groups
+  #   A.2) we use one layer for layer group and its descendants
   #   B) we want to use a separate layer for every layer
+  #
   # Each option requires a slightly different approach.
+  # A.2 — which happens when both separate_groups and separate_layers
+  # are false — is a mild variation on scenario A, hence this condition:
 
-  if separate_groups:
+  if separate_groups or not separate_layers:
     group_layers = []
     for layerId in sublayers:
       layer = gimp.Item.from_id(layerId)
@@ -215,22 +248,26 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         continue
 
       # we hide layer gropups and put them on a "handle me later pls" list
-      if type(layer) is gimp.GroupLayer:
+      # in case of A.2, we skip this step
+      if type(layer) is gimp.GroupLayer and separate_groups:
         group_layers.append(layer)
         layer.visibility = False
       # we don't separate layers, so we don't do anything with things that 
       # aren't layer groups.
 
-    # we do outline of the current layer group
-    group_outline_layer = add_layer_group_bottom(image, group_layer)
+    # we do outline of the current layer/layer group group.
+    # we also do this when separate_groups and separate_layers are both false
+    group_outline_layer = add_layer_below(image, group_layer)
     paint_selection(group_outline_layer)
     clear_selection(image)
 
     # now it's recursion o'clock:
     # (and yes, we do recursion)
-    for layer in group_layers:
-      layer.visibility = True
-      outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+    # unless we use scenario A.2
+    if separate_groups:
+      for layer in group_layers:
+        layer.visibility = True
+        outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
   
   else: 
     # so we're doing this layer by layer, possibly even separating layers
