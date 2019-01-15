@@ -139,9 +139,9 @@ def restore_fg_stack():
 
 def parse_args_from_layer_name(name):
   firstCommand = name.split('>>')[0]
-  if firstCommand.find('()=>skip'):
+  if firstCommand.find('()=>skip') != -1:
     return [['skip']]
-  if firstCommand.find('()=>end'):
+  if firstCommand.find('()=>end') != -1:
     return [['end']]
 
   argLine = name.split('()=>outline')[1].split('()=>')[0]
