@@ -23,6 +23,8 @@ And especially the first one has slowly started to annoy me to the point I decid
 
 This feature is mildly useful if you're doing repetitive things, such as e.g. making a regular comic or something (especially if you're using multiple different outlines on different comic elements). If you're using a template file for your comic (with all layer groups pre-defined), you can put a "command block" into the layer name. When running extension in automatic mode, extension will do outlines according to what's in the command block.
 
+You can put an outline block both on single layer as well as a layer group, but there's few caveats.
+
 You can only use ***one*** command block for a single script. However, it should be safe to mix command blocks of multiple scripts.
 
 If script runs recursively inside a layer group, any nested layer group will be processed with the same parameters as the parent group. (Some commands are exception to the rule)
@@ -46,7 +48,7 @@ Example of a command block is here.
 `t=X` —  thickness in pixels (replace X with a number. There should be no spaces on either side of =)
 `f=X` —  feather (in pixels)
 `color=#xxxxxx` — outline color in hexadecimal/html values. Only takes the six-digit hex code, not words.
-`separate_groups` — will outline entire group instead instead of outlining each layer inside of the group individually. Outline of a layer group will not include outline of layers inside nested groups. Those will be processed separately.
+`separate_groups` — will outline entire group instead instead of outlining each layer inside of the group individually. Outline of a layer group will not include outline of layers inside nested groups. Those will be processed separately. While using this option, command blocks on individual layers will be mostly ingored.
 `separate_layers` — will outline every layer inside a group (recursively)
 
 If neither `separate_groups` and `separate_layers` are set, script will outline current layer or layer group. If outlining layer group in this case, the outline will contain outline of all layers in the layer group, including layers inside a nested group. In this case, the script will not recurse. These two options can _not_ be defined at the same time. If you try to use both at once, the last one wins.
