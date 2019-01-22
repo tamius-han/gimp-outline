@@ -199,6 +199,13 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
   argPass = '()=>skip'
   preserveCmd = False
 
+  isGroupLayer = type(group_layer) is gimp.GroupLayer
+
+  sublayers = []
+  if isGroupLayer:
+   sublayers = pdb.gimp_item_get_children(group_layer)[1]
+
+
   if auto:
     try: 
       arguments = parse_args_from_layer_name(group_layer.name)
@@ -206,7 +213,10 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         if arg[0] == 'end':
           return
         if arg[0] == 'skip':
-          skip = True
+          if isGroupLayer:
+            skip = True
+          else:
+            return
           break
         if arg[0] == 't':
           thickness = int(arg[1])
@@ -235,71 +245,80 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         elif arg[0] == 'preserve_cmd':
           preserveCmd = True
     except:
-      skip = True
+      print("No command in layer name, will skip")
+      print(group_layer.name)
 
-  if color:
-    set_bg_stack(color)
+      if isGroupLayer:
+        skip = True
+      else:
+        return
 
-  sublayers = pdb.gimp_item_get_children(group_layer)[1]
 
-  # If we're using this function, there's about two valid options:
-  #
-  #   A) we use separate layers for separate groups
-  #   A.2) we use one layer for layer group and its descendants
-  #   B) we want to use a separate layer for every layer
-  #
-  # Each option requires a slightly different approach.
-  # A.2 -- which happens when both separate_groups and separate_layers
-  # are false -- is a mild variation on scenario A, hence this condition:
-
-  if separate_groups or not separate_layers:
-    group_layers = []
-    for layerId in sublayers:
-      layer = gimp.Item.from_id(layerId)
-
-      # we ignore hidden layers
-      if not layer.visible:
-        continue
-
-      # we hide layer gropups and put them on a "handle me later pls" list
-      # in case of A.2, we skip this step
-      if type(layer) is gimp.GroupLayer and separate_groups:
-        group_layers.append(layer)
-        layer.visible = False
-      # we don't separate layers, so we don't do anything with things that 
-      # aren't layer groups.
-
-    # we do outline of the current layer/layer group group.
-    # we also do this when separate_groups and separate_layers are both false
-    if not skip:
-      group_outline_layer = add_layer_below(image, group_layer, preserveCmd, argPass)
-      paint_selection(group_outline_layer)
-      clear_selection(image)
-
-    # now it's recursion o'clock:
-    # (and yes, we do recursion)
-    # unless we use scenario A.2
-    if separate_groups:
-      for layer in group_layers:
-        layer.visible = True
-        outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
   
-  else: 
-    # so we're doing this layer by layer, possibly even separating layers
-    for layerId in sublayers:
-      layer = gimp.Item.from_id(layerId)
+  if color:
+      set_bg_stack(color)
 
-      # we ignore hidden layers
-      if not layer.visible:
-        continue
-      
-      if type(layer) is gimp.GroupLayer:
+  if not isGroupLayer:
+    create_selection(image, group_layer, thickness, feather)
+    outline_layer = add_layer_below(image, group_layer, preserveCmd, argPass)
+    paint_selection(outline_layer)
+  else:
+    # If we're using this function, there's about two valid options:
+    #
+    #   A) we use separate layers for separate groups
+    #   A.2) we use one layer for layer group and its descendants
+    #   B) we want to use a separate layer for every layer
+    #
+    # Each option requires a slightly different approach.
+    # A.2 -- which happens when both separate_groups and separate_layers
+    # are false -- is a mild variation on scenario A, hence this condition:
+
+    if separate_groups or not separate_layers:
+      group_layers = []
+      for layerId in sublayers:
+        layer = gimp.Item.from_id(layerId)
+
+        # we ignore hidden layers
+        if not layer.visible:
+          continue
+
+        # we hide layer gropups and put them on a "handle me later pls" list
+        # in case of A.2, we skip this step
+        if type(layer) is gimp.GroupLayer and separate_groups:
+          group_layers.append(layer)
+          layer.visible = False
+        # we don't separate layers, so we don't do anything with things that 
+        # aren't layer groups.
+
+      # we do outline of the current layer/layer group group.
+      # we also do this when separate_groups and separate_layers are both false
+      if not skip:
+        group_outline_layer = add_layer_below(image, group_layer, preserveCmd, argPass)
+        paint_selection(group_outline_layer)
+        clear_selection(image)
+
+      # now it's recursion o'clock:
+      # (and yes, we do recursion)
+      # unless we use scenario A.2
+      if separate_groups:
+        for layer in group_layers:
+          layer.visible = True
+          outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+    
+    else: 
+      # so we're doing this layer by layer, possibly even separating layers
+      for layerId in sublayers:
+        layer = gimp.Item.from_id(layerId)
+
+        # we ignore hidden layers
+        if not layer.visible:
+          continue
+        
         # yes, we do recursion
+        # btw we do this to paint outline as well. Layer groups aren't the only
+        # layer objects that can contain a command
         outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
-      elif not skip:
-        create_selection(image, layer, thickness, feather)
-        outline_layer = add_layer_below(image, layer, preserveCmd, argPass)
-        paint_selection(outline_layer)
+        
         
         if merge_source_layer: 
           name = layer.name         # save name of original layer
