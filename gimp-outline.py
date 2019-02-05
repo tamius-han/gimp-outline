@@ -193,7 +193,7 @@ def paint_selection(layer):
 # L A Y E R   H A N D L I N G
 #
 
-def outline_layer_group(image, group_layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
+def outline_layer_group(image, group_layer, auto, inherit_auto_config, use_defaults, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   # in auto mode, we parse arguments from layer name
   skip = False
   argPass = '()=>skip'
@@ -244,6 +244,14 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
           argPass = ''
         elif arg[0] == 'preserve_cmd':
           preserveCmd = True
+      
+
+
+      if arguments and inherit_auto_config:
+        use_defaults = True
+      else if not arguments and not use_defaults:
+        skip = True
+
     except:
       print("No command in layer name, will skip")
       print(group_layer.name)
@@ -303,7 +311,7 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
       if separate_groups:
         for layer in group_layers:
           layer.visible = True
-          outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+          outline_layer_group(image, layer, auto, inherit_auto_config, use_defaults, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
     
     else: 
       # so we're doing this layer by layer, possibly even separating layers
@@ -317,7 +325,7 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
         # yes, we do recursion
         # btw we do this to paint outline as well. Layer groups aren't the only
         # layer objects that can contain a command
-        outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+        outline_layer_group(image, layer, auto, inherit_auto_config, use_defaults, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
         
         
         if merge_source_layer: 
@@ -331,49 +339,9 @@ def outline_layer_group(image, group_layer, auto, color, thickness, feather, sep
     restore_bg_stack()
 
 # main function
-def python_outline(image, drawable, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
-  set_bg_stack(color)
+def test_outline(image, drawable, auto, inherit_auto_config, use_defaults, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   clear_selection(image)
-  layer = image.active_layer
-
-  # we ignore hidden layers
-  if not layer.visible:
-    return
-  
-  # we only do recursion if layers or groups have separate outlines
-  # but we don't do recursion on 'merge source layer' and 'not separate layers'
-  # because if we're merging source layer when group layer is selected, the entire
-  # group is getting merged down to the outline. That makes everything pointles.
-  # 
-  # also yes, btw, we can merge layer group to a layer below the group
-  # we can also create selection from layer group alpha, which saves us some work
-  recursive = (separate_groups or separate_layers) and not (merge_source_layer and not separate_groups)
-
-  if type(layer) is gimp.GroupLayer and recursive:
-    outline_layer_group(image, layer, thickness, feather, separate_groups, separate_layers, merge_source_layer)
-
-    # if we separated layers or groups, outlines are already filled with color, so 
-    # we can skip that part
-    if type(layer) is gimp.GroupLayer and not separate_layers and not separate_groups:
-      group_outline_layer = add_layer_group_bottom(image,layer)
-      paint_selection(group_outline_layer)
-  else:
-    create_selection(image, layer, thickness, feather)
-    outline_layer = add_layer_below(image, layer)
-    paint_selection(outline_layer)
-    
-    if merge_source_layer:
-      name = layer.name         # save name of original layer
-      merged_layer = pdb.gimp_image_merge_down(image, layer, EXPAND_AS_NECESSARY)
-      merged_layer.name = name  # restore name of original layer
-    
-  # clear selection and restore background color
-  clear_selection(image)
-  restore_bg_stack()
-
-def test_outline(image, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
-  clear_selection(image)
-  layer = image.active_layer
+  layer = drawable
 
   # we only do recursion if we separate layers or groups. Also 'merge source layer'
   # option is really only valid with separate layers, because if groups are allowed
@@ -381,10 +349,10 @@ def test_outline(image, auto, color, thickness, feather, separate_groups, separa
   # 
   # also yes, btw, we can merge layer group to a layer below the group
   # we can also create selection from layer group alpha, which saves us some work
-  recursive = (separate_groups and not merge_source_layer) or separate_layers
+  recursive = separate_groups or separate_layers
 
   if type(layer) is gimp.GroupLayer and recursive:
-    outline_layer_group(image, layer, auto, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+    outline_layer_group(image, layer, auto, inherit_auto_config, use_defaults, color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
     # if we separated layers or groups, outlines are already filled with color, so 
     # we can skip that part
     if type(layer) is gimp.GroupLayer and not separate_layers and not separate_groups:
@@ -392,9 +360,13 @@ def test_outline(image, auto, color, thickness, feather, separate_groups, separa
       paint_selection(group_outline_layer)
 
   else:
+    set_bg_stack(color)
+
     create_selection(image, layer, thickness, feather)
     outline_layer = add_layer_below(image, layer)
     paint_selection(outline_layer)
+
+    restore_bg_stack()
     
     if merge_source_layer:
       name = layer.name         # save name of original layer
@@ -406,4 +378,41 @@ def test_outline(image, auto, color, thickness, feather, separate_groups, separa
 
 def test_auto():
    img = gimp.image_list()[0]
-   test_outline(img, True, '#000000', 3, 0, False, True, False)
+   test_outline(img, img.active_layer, True, True, False, '#000000', 3, 0, False, True, False)
+   print("outline tested")
+
+def gimp_outline(image, drawable, color, thickness, feather, separate_mode, merge_source_layer, auto, inherit_auto_config, use_defaults):
+  separate_groups = separate_mode == 1
+  separate_layers = separate_mode == 2
+
+  test_outline(image, drawable, auto, inherit_auto_config, use_defaults,  color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+
+
+register (
+  "gimp-outline",
+  "Generate outline of the current layer or layer group.",
+  "Generate outline of the current layer or layer group.",
+  "Tamius Han", "Tamius Han", "2019",
+  "RGBA",
+  [
+    (PF_IMAGE, "image", "takes current image", None),
+    (PF_DRAWABLE, "drawable", "Input layer", None),
+    (PF_COLOR, "color", "Outline color", (0,0,0)),
+    (PF_INT, "thickness", "Outline thickness", 3),
+    (PF_INT, "feather", "Feather", 0),
+    (PF_RADIO, "separate_mode", "Outline separation options", 0,
+      ("Outline layer group on a single layer. Do not outline layers or nested layer groups individually", 0)
+      ("Separate outline for every layer group (outlines from nested layer group are excluded from outline of parent layer group), do not outline layers individually", 1),
+      ("Separate outline for every layer, do not outline layer groups.", 2)
+    )
+    (PF_BOOLEAN, "merge_source_layer", "Merge outline with source layer", False),
+    (PF_BOOLEAN, "auto", "Automatic mode (only applicable when layer group is selected)", True),
+    (PF_BOOLEAN, "inherit_auto_config", "(Automatic-only) Nested layers and layer group inherit settings of their parent", False),
+    (PF_BOOLEAN, "use_defaults", "(Automatic-only) do not skip layer groups without configuration block", False)
+  ],
+  [],
+  gimp_outline,
+  menu="<Image>/Filters/Decor"
+)
+
+main()
