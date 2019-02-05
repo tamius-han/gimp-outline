@@ -249,7 +249,7 @@ def outline_layer_group(image, group_layer, auto, inherit_auto_config, use_defau
 
       if arguments and inherit_auto_config:
         use_defaults = True
-      else if not arguments and not use_defaults:
+      elif not arguments and not use_defaults:
         skip = True
 
     except:
