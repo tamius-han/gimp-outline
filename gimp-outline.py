@@ -78,7 +78,7 @@ def add_layer_group_bottom(image, layer, preserveCmd=False, argumentPass='()=>sk
   
   if type(layer) is gimp.GroupLayer:
     # we want to give outline to a layer group. We add new layer at 
-    # at the bottom of the current group, so moving the group moves
+    # at the bottom of the current group, s o moving the group moves
     # both group's original contents as well as the outline
     stack_pos = len(pdb.gimp_item_get_children(layer)[1]) - 1
 
@@ -341,7 +341,7 @@ def outline_layer_group(image, group_layer, auto, inherit_auto_config, use_defau
 # main function
 def test_outline(image, drawable, auto, inherit_auto_config, use_defaults, color, thickness, feather, separate_groups, separate_layers, merge_source_layer):
   clear_selection(image)
-  layer = drawable
+  layer = image.active_layer
 
   # we only do recursion if we separate layers or groups. Also 'merge source layer'
   # option is really only valid with separate layers, because if groups are allowed
@@ -382,10 +382,11 @@ def test_auto():
    print("outline tested")
 
 def gimp_outline(image, drawable, color, thickness, feather, separate_mode, merge_source_layer, auto, inherit_auto_config, use_defaults):
+# def gimp_outline(color, thickness, feather, separate_mode, merge_source_layer, auto, inherit_auto_config, use_defaults):
   separate_groups = separate_mode == 1
   separate_layers = separate_mode == 2
 
-  test_outline(image, drawable, auto, inherit_auto_config, use_defaults,  color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
+  test_outline(image, None, auto, inherit_auto_config, use_defaults,  color, thickness, feather, separate_groups, separate_layers, merge_source_layer)
 
 
 register (
@@ -393,26 +394,31 @@ register (
   "Generate outline of the current layer or layer group.",
   "Generate outline of the current layer or layer group.",
   "Tamius Han", "Tamius Han", "2019",
-  "RGBA",
+  "<Image>/Filters/Decor/Outline layer...",
+  "RGBA, GRAYA",
   [
-    (PF_IMAGE, "image", "takes current image", None),
-    (PF_DRAWABLE, "drawable", "Input layer", None),
+    # (PF_IMAGE, "image", "takes current image", None),
+    # (PF_DRAWABLE, "drawable", "Input layer", None),
     (PF_COLOR, "color", "Outline color", (0,0,0)),
     (PF_INT, "thickness", "Outline thickness", 3),
     (PF_INT, "feather", "Feather", 0),
-    (PF_RADIO, "separate_mode", "Outline separation options", 0,
-      ("Outline layer group on a single layer. Do not outline layers or nested layer groups individually", 0)
-      ("Separate outline for every layer group (outlines from nested layer group are excluded from outline of parent layer group), do not outline layers individually", 1),
-      ("Separate outline for every layer, do not outline layer groups.", 2)
-    )
-    (PF_BOOLEAN, "merge_source_layer", "Merge outline with source layer", False),
-    (PF_BOOLEAN, "auto", "Automatic mode (only applicable when layer group is selected)", True),
-    (PF_BOOLEAN, "inherit_auto_config", "(Automatic-only) Nested layers and layer group inherit settings of their parent", False),
-    (PF_BOOLEAN, "use_defaults", "(Automatic-only) do not skip layer groups without configuration block", False)
+    (PF_RADIO, "separate_mode", "Outline separation options", 0, 
+      (
+        # ("Outline_layer_group on a single layer. Do not outline layers or nested layer groups individually", 0)
+        # ("Separate outline for every layer group (outlines from nested layer group are excluded from outline of parent layer group), do not outline layers individually", 1),
+        # ("Separate outline for every layer, do not outline layer groups.", 2)
+        ("single_layer", 0),
+        ("separate_groups", 1),
+        ("separate_layers", 2)
+      )
+    ),
+    (PF_BOOL, "merge_source_layer", "Merge outline with source layer", False),
+    (PF_BOOL, "auto", "Automatic mode (only applicable when layer group is selected)", True),
+    (PF_BOOL, "inherit_auto_config", "(Automatic-only) Nested layers and layer group inherit settings of their parent", False),
+    (PF_BOOL, "use_defaults", "(Automatic-only) do not skip layer groups without configuration block", False)
   ],
   [],
-  gimp_outline,
-  menu="<Image>/Filters/Decor"
+  gimp_outline
 )
 
 main()
