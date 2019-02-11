@@ -253,13 +253,13 @@ def outline_layer_group(image, group_layer, auto, inherit_auto_config, use_defau
         skip = True
 
     except:
-      print("No command in layer name, will skip")
-      print(group_layer.name)
-
-      if isGroupLayer:
-        skip = True
-      else:
-        return
+      if not use_defaults:
+        print("No command in layer name, will skip")
+        print(group_layer.name)
+        if isGroupLayer:
+          skip = True
+        else:
+          return
 
 
   
