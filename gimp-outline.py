@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
 # docs: https://www.gimp.org/docs/python/index.html
-# 
+#
+# © Tamius Han, 2020. 
+# website: https://tamius.net
+# github:  https://github.com/tamius-han
+#  
 # Based on a similar plugin by Pete Nu
 #     http://pete.nu/software/gimp-outliner/
 #
 # Improvements:
 #     * works inside layer groups
-#     * [planned] provides outlines for all layers in a group
+#     * provides outlines for all layers in a group
 #       on a single layer
 
 from gimpfu import *
@@ -412,8 +416,8 @@ register (
         # ("Separate outline for every layer group (outlines from nested layer group are excluded from outline of parent layer group), do not outline layers individually", 1),
         # ("Separate outline for every layer, do not outline layer groups.", 2)
         ("Outline group", 0),
-        ("Recurse, outline lowest-level group", 1),
-        ("Recurse, outline individual layers", 2)
+        ("Recurse, outline groups", 1),
+        ("Recurse, outline layers", 2)
       )
     ),
     (PF_BOOL, "merge_source_layer", "Merge outline with source layer", False),
