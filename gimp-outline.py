@@ -2,7 +2,7 @@
 
 # docs: https://www.gimp.org/docs/python/index.html
 #
-# © Tamius Han, 2020. 
+# (c) Tamius Han, 2020. 
 # website: https://tamius.net
 # github:  https://github.com/tamius-han
 #  
