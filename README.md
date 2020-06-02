@@ -1,13 +1,17 @@
 # gimp-outline
 
-Outlining script for GIMP. This script is strongly inspired by a similar plugin by Pete Nu ([link](http://pete.nu/software/gimp-outliner/)). Unfortunately — while a great and useful tool that I've used extensively in the past — Pete's script has a few limitations:
+Outlining script for GIMP. Inspired by a similar plugin by Pete Nu ([link](http://pete.nu/software/gimp-outliner/)).
+
+Pete's script has a few limitations that annoy me:
 
 * it's been written before layer groups were even a thing in GIMP. As such, its handling of layers inside a layer group is less than ideal: instead of outline appearing under the layer, the new layer is inserted at the top of the layer list, covering all other layers
 * The script doesn't clean nicely after itself (selection remains active)
 
-And especially the first one has slowly started to annoy me to the point I decided to write my own script. Because I'm writing the code this time around, I'm also in a position where I can insert any functionality I want. Without further ado:
+I also needed some extra features (automation) for a side project of mine.
 
 ## Features
+
+Not all of this works. I accept PRs.
 
 * Make an outline of a single layer. You can define outline color, thickness and feather.
 * Make an outline of every layer inside a layer group. Recursively, too.
@@ -15,7 +19,35 @@ And especially the first one has slowly started to annoy me to the point I decid
 * Merge source layer with the outline (probably doesn't work if you're outlining a layer group)
 * Auto-outlining based on layer (group) name
 * It automatically clears selection when it's done
-* (TODO) offer an option to remove previous outlines
+
+
+## Maybe but not likely:
+
+There's a few things that may appear in there eventually, but don't count on it.
+
+* offer an option to remove previous outlines
+
+## Usage
+
+### Using the script via UI
+
+The scripts puts itself in `Filters > Decor > Create outline`. You will get a popup like this:
+
+![Plugin popup](readme-resources/gui_options.png)
+
+The first half is self explanatory:
+
+* **Outline color:** this is the color of the outline.
+* **Outline thickness:** outline will be this many pixels thick.
+* **Feather** outline will be this fuzzy
+* **Outline options:** determines how many outline layers you get:
+  * _Outline group_ creates one outline for entire group.
+  * _Recurse, outline group_ creates one outline for every group. Outline for group excludes outlines of subgroups. ***CURRENTLY BROKEN — CREATES ALL-BLACK LAYER***
+  * _Recurse, outline layers_ outlines individual layers rather than groups. Groups are not outlined.
+* **Merge outline with source layer:** By default source layer and outline are separate. This should merge them into one layer. ***THOROUGHLY UNTESTED, may not work when outlining groups***
+* **Automatic mode:** create outlines based on layer name.
+* **Nested layers inherit settings:** if layer or layer group doesn't have a valid name, it inherits settings from the parent layer.
+* **Do not skip layer groups without config:** by default, automatic mode doesn't recurse through layer groups without config. Set to 'true' if that's inconvenient.
 
 ### Auto-outlining based on layer name
 
