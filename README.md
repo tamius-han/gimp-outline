@@ -29,6 +29,15 @@ There's a few things that may appear in there eventually, but don't count on it.
 
 ## Usage
 
+### Installing 
+
+Download `gimp-outliner.py` from this repository and put it in GIMP's plugin folder. You need GIMP 2.10.18 or later.
+
+GIMP plugin folder:
+
+* Linux: `~/.config/GIMP/2.10/plug-ins`
+* Windows: `C:\Users\your-name\Appdata\Roaming\GIMP\2.10\`
+
 ### Using the script via UI
 
 The scripts puts itself in `Filters > Decor > Create outline`. You will get a popup like this:
