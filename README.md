@@ -86,10 +86,8 @@ Example of a command block is here.
 **Available commands**
 
 * `()=>outline` — start of command block for auto-outlining script. Everything after this should be an argument. Arguments are separated by space.
-* `skip` — don't process this layer / layer group. It doesn't stop recursion — the children will be processed normally. Doesn't apply to children.
-* `()=>skip` — same as `skip`, except it also tells other scripts (that I wrote and have similar auto capabilites) to ignore this block. Doesn't apply to children.
-* `end` — don't process this layer / layer group. Don't process children, either. Do I need to state the obvious?
-* `()=>end` — makes other scripts of mine respect `end` command as well.
+* `skip` — don't process this layer / layer group. It doesn't stop recursion — the children will be processed normally.
+* `end` — don't process this layer / layer group. Don't process children, either.
 * `t=X` —  thickness in pixels (replace X with a number. There should be no spaces on either side of =)
 * `f=X` —  feather (in pixels)
 * `color=#xxxxxx` — outline color in hexadecimal/html values. Only takes the six-digit hex code, not words.
@@ -106,16 +104,18 @@ Sometimes when using multiple levels of nested groups, you may want to use diffe
 * `no_separate_groups` — opposite of `separate_layers`
 * `no_separate_layers` — opposite of `separate_layers`
 
+* `preserve_cmd` — The layers this script create won't contain the command block used to create them in their name by default. This overrides this behaviour.
 
-**Before we go into the rest of commands, here's an important technical stuff about how the outline layer is named**
+**Special commands and integration with other scripts**
 
-When creating a layer, the script will name the outline layer as `outline:: ` + original name (minus ***any*** command block) + ` ()=>skip`. E.g. say you want to make an outline of a layer named `Testy McTestyface ()=>outline t=1 color=#000000 ()=>some_other_command`. The outline layer for this layer  will be named `outline::  Testy McTestyface ()=>skip`. If the command block contains `merge-source` (e.g. `Testy McTestyface ()=>outline t=1 merge_source color=#000000`), the script will name the outline layer as `outline-ms:: ` + original name (minus original `()=>outline` command block) (e.g. `outline-ms::  Testy McTestyface ()=>skip`).
+This isn't my only script for GIMP. Let's say that you want to create speech bubbles around all the text layers in a given layer group, and you want to outline the resulting speech bubbles. This means that you need to pass the command block on the layer the speech bubble script creates:
 
-**NOTE:** NONE of the following commands apply to nested layers/layer groups.
+* `>>` — passes command following it to the layer script creates. Commands after `>>` on the original layer will be ignored by the script.
 
-* `preserve_cmd` — when creating the layer with outline, don't remove the original command block. If layer you're outlining has no command block, the script will NOT add the command to the name — e.g. outline of layer named `Testy McTestyface` will be `outline:: Testy McTestyface`
-* `>>` — everything after `>>` is not considered to be part of command. Instead, it will be appended to the name of the outline layer. For example, outline of `Testy McTestyface >> ()=>outline t=3 color=#ffffff` will be named `outline:: Testy McTestyFace ()=>outline t=3  color=#ffffff`
-* `no_default_skip` — when creating the layer with outline, don't automatically append `()=>skip` to the layer name. Cannot be defined at the same time as `>>` (`>>` has priority). Equivalent to `>> [no argument]` (probably, didn't test). 
+* `()=>skip` — is shorthand for `()=>outline skip`, except it's respected by _all other scripts_ I wrote.
+* `()=>end` — is shorthand for `()=>outline end`, except it also applies for _all other scripts_ I wrote.
+
+* `no_default_skip` — The layers this script creates will contain a `()=>skip` by default. This overrides that behaviour. Usage of `>>` automatically implies `no_default_skip`
 
 
 ***Usage examples***
