@@ -1,13 +1,24 @@
-# gimp-outline
+# Gimp outline
+
+# TL;DR
+
+1. Download `gimp-outliner.py`. The file goes to `~/.config/GIMP/2.10/plug-ins` on Linux or `C:\Users\your-name\Appdata\Roaming\GIMP\2.10\` on Windows.
+2. The outline plugin should appear in `Filters > Decor > Create outline` the next time you start GIMP
+3. There's a bunch of options you get (there are some bugged combos though). Mostly self-explanatory.
+![Plugin popup](readme-resources/gui_options.png)
+4. Except automatic mode. If you want automatic mode, you'll have to read the _"Auto-outlining based on layer name"_ part of this file.
+
+# The life story
 
 Outlining script for GIMP. Inspired by a similar plugin by Pete Nu ([link](http://pete.nu/software/gimp-outliner/)).
 
-Pete's script has a few limitations that annoy me:
+Back when I started writing that plugin, Pete's plugin had a few limitations that I found annoying:
 
-* it's been written before layer groups were even a thing in GIMP. As such, its handling of layers inside a layer group is less than ideal: instead of outline appearing under the layer, the new layer is inserted at the top of the layer list, covering all other layers
-* The script doesn't clean nicely after itself (selection remains active)
+* Since the plugin was written before layer groups were a thing, trying to outline a layer inside a group would produce broken results. (Fixed as of May 2020)
+* No merging of the outline with source layer (Fixed as of May 2020)
+* The script doesn't clean nicely after itself — selection remains active (Not sure of current status)
 
-I also needed some extra features (automation) for a side project of mine.
+I also wanted some rudamentary automation features, because I had a side project where I created outlines a lot.
 
 ## Features
 
@@ -19,13 +30,6 @@ Not all of this works. I accept PRs.
 * Merge source layer with the outline (probably doesn't work if you're outlining a layer group)
 * Auto-outlining based on layer (group) name
 * It automatically clears selection when it's done
-
-
-## Maybe but not likely:
-
-There's a few things that may appear in there eventually, but don't count on it.
-
-* offer an option to remove previous outlines
 
 ## Usage
 
@@ -119,6 +123,6 @@ When creating a layer, the script will name the outline layer as `outline:: ` + 
 * `()=>outline t=3 f=3 color=#000000` — make a black outline 3 pixels thick, feather it for 3 pixels.
 * `()=>outline skip` — don't do anything
 
-### Developing
+## Developing
 
 Use `execfile("/path/to/python/script")` to load the script. If console crashes, comment out `main()` at the end of the file.
